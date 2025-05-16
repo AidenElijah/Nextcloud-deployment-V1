@@ -5,11 +5,11 @@ set -e
 
 # Variabelen
 NEXTCLOUD_DIR="/var/www/nextcloud"
-STORAGE_ACCOUNT_NAME="<vervang-door-storage-account>"
-CONTAINER_NAME="<vervang-door-containernaam>"
+STORAGE_ACCOUNT_NAME="ezyinm7lu4klq"
+CONTAINER_NAME="nextclouddata"
 MOUNT_POINT="/mnt/nextclouddata"
-RESOURCE_GROUP="<vervang-door-resourcegroup>"
-LOCATION="<vervang-door-locatie>"
+RESOURCE_GROUP="myResourceGroup"
+LOCATION="westeurope"
 
 # Updates en vereisten
 sudo apt update && sudo apt upgrade -y
