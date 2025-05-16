@@ -31,6 +31,17 @@ echo "🛠️ Start installatie van Nextcloud en configuratie van Blobfuse2..."
 
 # Update en vereiste pakketten
 sudo apt update && sudo apt upgrade -y
+
+# Controleer op pending kernel upgrade en voer reboot uit indien nodig
+KERNEL_RUNNING=$(uname -r)
+KERNEL_INSTALLED=$(dpkg --status linux-image-azure | grep '^Version:' | awk '{print $2}' | cut -d'-' -f1)
+
+if [[ "$KERNEL_RUNNING" != *"$KERNEL_INSTALLED"* ]]; then
+  echo "⚠️ Er is een kernelupgrade pending. Het systeem wordt nu herstart om de nieuwe kernel te laden."
+  sudo reboot
+  # Het script stopt hier; na reboot moet het opnieuw gestart worden.
+fi
+
 sudo apt install -y apt-transport-https ca-certificates curl software-properties-common \
  apache2 mariadb-server unzip wget php php-mysql php-gd php-xml php-mbstring php-curl php-zip php-intl php-bcmath php-gmp php-imagick libfuse2 jq
 
