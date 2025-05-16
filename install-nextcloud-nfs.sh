@@ -2,7 +2,7 @@
 
 set -e
 
-# Parameter verwerking
+# Parameters
 STORAGE_ACCOUNT_NAME="ezyinm7lu4klq"
 STORAGE_ACCOUNT_KEY="Kgc2Hn4IHKqa63aoQnxgVJJf3pet/F0pd7jCh0zgoBuExvu1gD627YWHkURVKUrcKqoca3oqk9rk+ASthXoL6Q=="
 CONTAINER_NAME="nextclouddata"
@@ -27,58 +27,83 @@ if [[ -z "$STORAGE_ACCOUNT_NAME" || -z "$STORAGE_ACCOUNT_KEY" ]]; then
   usage
 fi
 
-echo "Start installatie Nextcloud en mount Blobfuse..."
+echo "🛠️ Start installatie van Nextcloud en configuratie van Blobfuse2..."
 
-# Systeem update en benodigde pakketten installeren
+# Update en vereiste pakketten
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y apache2 mariadb-server libapache2-mod-php \
- php php-mysql php-gd php-xml php-mbstring php-curl php-zip php-intl \
- php-bcmath php-gmp php-imagick unzip wget fuse blobfuse
+sudo apt install -y apt-transport-https ca-certificates curl software-properties-common \
+ apache2 mariadb-server unzip wget php php-mysql php-gd php-xml php-mbstring php-curl php-zip php-intl php-bcmath php-gmp php-imagick libfuse2 jq
 
-# Blobfuse cache directory
-CACHE_DIR="/tmp/blobfusecache"
-mkdir -p $CACHE_DIR
+# Installeer Blobfuse2 vanuit de officiële Microsoft repository
+echo "➡️ Installeer Blobfuse2"
+wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+sudo dpkg -i packages-microsoft-prod.deb
+sudo apt update
+sudo apt install -y blobfuse2
 
-# Maak mount point en stel rechten in
+# Blobfuse2 configuratie
+mkdir -p ~/.blobfuse2
+cat <<EOF > ~/.blobfuse2/connection.cfg
+accountName: $STORAGE_ACCOUNT_NAME
+accountKey: $STORAGE_ACCOUNT_KEY
+EOF
+
+cat <<EOF > ~/.blobfuse2/mount.json
+{
+  "version": 2,
+  "logging": {
+    "type": "syslog",
+    "level": "LOG_DEBUG"
+  },
+  "components": [
+    "wasb",
+    "attr_cache"
+  ],
+  "wasb": {
+    "account_name": "$STORAGE_ACCOUNT_NAME",
+    "container_name": "$CONTAINER_NAME",
+    "account_key": "$STORAGE_ACCOUNT_KEY"
+  },
+  "attr_cache": {
+    "timeout_sec": 120
+  }
+}
+EOF
+
+# Mount directory aanmaken
 sudo mkdir -p "$MOUNT_POINT"
 sudo chown -R www-data:www-data "$MOUNT_POINT"
 
-# Blobfuse configuratiebestand aanmaken
-CONFIG_FILE="/etc/blobfuse.cfg"
-sudo bash -c "cat > $CONFIG_FILE <<EOF
-accountName $STORAGE_ACCOUNT_NAME
-accountKey $STORAGE_ACCOUNT_KEY
-containerName $CONTAINER_NAME
-EOF"
-
-sudo chmod 600 $CONFIG_FILE
-
-# Blobfuse mounten (achtergrond)
-sudo blobfuse $MOUNT_POINT --config-file=$CONFIG_FILE --log-level=LOG_DEBUG --file-cache-timeout-in-seconds=120 &
+# Blobfuse2 mount uitvoeren
+echo "➡️ Blobfuse2 mount uitvoeren..."
+sudo blobfuse2 mount "$MOUNT_POINT" --config-file ~/.blobfuse2/mount.json &
 
 sleep 5
 
-if mountpoint -q $MOUNT_POINT; then
-  echo "Blobfuse succesvol gemount op $MOUNT_POINT"
+if mountpoint -q "$MOUNT_POINT"; then
+  echo "✅ Blobfuse2 succesvol gemount op $MOUNT_POINT"
 else
-  echo "Mounten met Blobfuse mislukt"
+  echo "❌ Mounten met Blobfuse2 mislukt"
   exit 1
 fi
 
 # Nextcloud downloaden en installeren
+echo "➡️ Download en installatie van Nextcloud"
 wget https://download.nextcloud.com/server/releases/latest.zip
 unzip latest.zip
 sudo mv nextcloud /var/www/nextcloud
 sudo chown -R www-data:www-data /var/www/nextcloud
 
-# MariaDB configureren
+# MariaDB instellen
+echo "➡️ MariaDB configureren"
 sudo systemctl start mariadb
 sudo mysql -e "CREATE DATABASE IF NOT EXISTS nextcloud CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
 sudo mysql -e "CREATE USER IF NOT EXISTS 'nextclouduser'@'localhost' IDENTIFIED BY 'sterkwachtwoord123';"
 sudo mysql -e "GRANT ALL PRIVILEGES ON nextcloud.* TO 'nextclouduser'@'localhost';"
 sudo mysql -e "FLUSH PRIVILEGES;"
 
-# Apache configuratie voor Nextcloud
+# Apache configuratie
+echo "➡️ Apache configuratie instellen"
 cat <<EOF | sudo tee /etc/apache2/sites-available/nextcloud.conf
 <VirtualHost *:80>
     ServerAdmin admin@example.com
