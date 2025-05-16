@@ -3,8 +3,8 @@
 set -e
 
 # Parameter verwerking
-STORAGE_ACCOUNT_NAME=""
-STORAGE_ACCOUNT_KEY=""
+STORAGE_ACCOUNT_NAME="ezyinm7lu4klq"
+STORAGE_ACCOUNT_KEY="Kgc2Hn4IHKqa63aoQnxgVJJf3pet/F0pd7jCh0zgoBuExvu1gD627YWHkURVKUrcKqoca3oqk9rk+ASthXoL6Q=="
 CONTAINER_NAME="nextclouddata"
 MOUNT_POINT="/mnt/nextclouddata"
 
