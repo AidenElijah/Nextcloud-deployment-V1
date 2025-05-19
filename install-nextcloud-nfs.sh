@@ -86,27 +86,27 @@ sudo mkdir -p "$MOUNT_POINT"
 sudo chown -R www-data:www-data "$MOUNT_POINT"
 
 # Blobfuse2 mount uitvoeren
-echo "➡️ Blobfuse2 mount uitvoeren..."
+echo " Blobfuse2 mount uitvoeren..."
 sudo blobfuse2 mount "$MOUNT_POINT" --config-file ~/.blobfuse2/mount.json &
 
 sleep 5
 
 if mountpoint -q "$MOUNT_POINT"; then
-  echo "✅ Blobfuse2 succesvol gemount op $MOUNT_POINT"
+  echo " Blobfuse2 succesvol gemount op $MOUNT_POINT"
 else
-  echo "❌ Mounten met Blobfuse2 mislukt"
+  echo " Mounten met Blobfuse2 mislukt"
   exit 1
 fi
 
 # Nextcloud downloaden en installeren
-echo "➡️ Download en installatie van Nextcloud"
+echo " Download en installatie van Nextcloud"
 wget https://download.nextcloud.com/server/releases/latest.zip
 unzip latest.zip
 sudo mv nextcloud /var/www/nextcloud
 sudo chown -R www-data:www-data /var/www/nextcloud
 
 # MariaDB instellen
-echo "➡️ MariaDB configureren"
+echo " MariaDB configureren"
 sudo systemctl start mariadb
 sudo mysql -e "CREATE DATABASE IF NOT EXISTS nextcloud CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"
 sudo mysql -e "CREATE USER IF NOT EXISTS 'nextclouduser'@'localhost' IDENTIFIED BY 'sterkwachtwoord123';"
@@ -114,7 +114,7 @@ sudo mysql -e "GRANT ALL PRIVILEGES ON nextcloud.* TO 'nextclouduser'@'localhost
 sudo mysql -e "FLUSH PRIVILEGES;"
 
 # Apache configuratie
-echo "➡️ Apache configuratie instellen"
+echo " Apache configuratie instellen"
 cat <<EOF | sudo tee /etc/apache2/sites-available/nextcloud.conf
 <VirtualHost *:80>
     ServerAdmin admin@example.com
@@ -136,4 +136,4 @@ sudo a2ensite nextcloud.conf
 sudo a2enmod rewrite headers env dir mime ssl
 sudo systemctl reload apache2
 
-echo "✅ Installatie voltooid. Open http://<VM-IP>/nextcloud om de configuratie te voltooien."
+echo " Installatie voltooid. Open http://<VM-IP>/nextcloud om de configuratie te voltooien."
